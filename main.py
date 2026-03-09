@@ -8,7 +8,7 @@ from phrases import get_random_phrase
 logging.basicConfig(level=logging.INFO)
 
 # ⚠️ ВСТАВЬ СВОЙ ТОКЕН СЮДА (между кавычками)
-TOKEN = "1234567890:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsaw"  # ЗАМЕНИ НА СВОЙ!
+TOKEN = "8324336218:AAFAfLhEZ1Jz5mmL7Qhwk7KN_1rfge6Pe3U"  # ЗАМЕНИ НА СВОЙ!
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
@@ -246,4 +246,5 @@ async def main():
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
+
     asyncio.run(main())
