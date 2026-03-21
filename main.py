@@ -1,17 +1,25 @@
 import asyncio
 import logging
+import random
+from pathlib import Path
+from datetime import datetime
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from phrases import get_random_phrase
 
 logging.basicConfig(level=logging.INFO)
 
-# ⚠️ ВСТАВЬ СВОЙ ТОКЕН СЮДА
 TOKEN = "8324336218:AAFAfLhEZ1Jz5mmL7Qhwk7KN_1rfge6Pe3U"
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
+
+MEMES_DIR = Path(__file__).parent / "memes"
+
+# ID девушки
+YOUR_CHAT_ID = 564525738
 
 # -------------------------------------------------------------------
 # Клавиатуры
@@ -86,6 +94,42 @@ def fun_keyboard():
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
 
 # -------------------------------------------------------------------
+# Ежедневные сообщения (только с 22 по 27 марта)
+# -------------------------------------------------------------------
+
+async def send_daily_messages():
+    now = datetime.now()
+    hour = now.hour
+    day = now.weekday()
+    month_day = now.day
+
+    # Только с 22 по 27 марта
+    if month_day < 22 or month_day > 27:
+        return  # не отправляем ничего
+
+    if hour == 9:
+        await bot.send_message(YOUR_CHAT_ID, "Доброе утро, зайка моя! ☀️❤️ Улыбнись новому дню!")
+    
+    elif hour == 14:
+        if day == 0:
+            await bot.send_message(YOUR_CHAT_ID, "Как прошёл понедельник? Что делала? 🌸")
+        elif day == 1:
+            await bot.send_message(YOUR_CHAT_ID, "Как настроение? Поела сегодня вкусненького? 🍲")
+        elif day == 2:
+            await bot.send_message(YOUR_CHAT_ID, "Что нового? Чем занимаешься? 😊")
+        elif day == 3:
+            await bot.send_message(YOUR_CHAT_ID, "Как себя чувствуешь? Может, прилечь отдохнуть? 💤")
+        elif day == 4:
+            await bot.send_message(YOUR_CHAT_ID, "Пятница! Есть планы на вечер? 🎉")
+        elif day == 5:
+            await bot.send_message(YOUR_CHAT_ID, "Суббота! Как отдыхаешь? 🍃")
+        elif day == 6:
+            await bot.send_message(YOUR_CHAT_ID, "Воскресенье... Готовишься к новой неделе? 📝")
+    
+    elif hour == 22:
+        await bot.send_message(YOUR_CHAT_ID, "Спокойной ночи, мой лучик! 😴🌙 Пусть тебе приснится что-то очень хорошее ❤️")
+
+# -------------------------------------------------------------------
 # Обработчики
 # -------------------------------------------------------------------
 
@@ -96,6 +140,21 @@ async def cmd_start(message: Message):
         "Это твоя личная книга любви и поддержки. Выбери раздел, и я подарю тебе тёплые слова.",
         reply_markup=main_menu_keyboard()
     )
+
+@dp.message(F.text == "😂 Шутка")
+async def send_random_meme(message: Message):
+    if not MEMES_DIR.exists():
+        await message.answer("📁 Папка с мемами не найдена. Попроси создать её.")
+        return
+
+    images = [f for f in MEMES_DIR.iterdir() if f.suffix.lower() in ['.jpg', '.jpeg', '.png', '.gif', '.webp']]
+    if not images:
+        await message.answer("😢 Мемов пока нет, но скоро добавлю.")
+        return
+
+    random_meme = random.choice(images)
+    with open(random_meme, 'rb') as meme:
+        await message.answer_photo(meme, caption="😂 держи мем для настроения", reply_markup=fun_keyboard())
 
 @dp.message(F.text == "😊 Настроение")
 async def mood_section(message: Message):
@@ -201,11 +260,6 @@ async def secret_handler(message: Message):
 async def fun_section(message: Message):
     await message.answer("Что хочешь?", reply_markup=fun_keyboard())
 
-@dp.message(F.text == "😂 Шутка")
-async def joke_handler(message: Message):
-    phrase = get_random_phrase("joke")
-    await message.answer(phrase, reply_markup=fun_keyboard())
-
 @dp.message(F.text == "🌟 Вдохновение")
 async def inspire_handler(message: Message):
     phrase = get_random_phrase("inspire")
@@ -242,12 +296,16 @@ async def unknown_message(message: Message):
         reply_markup=main_menu_keyboard()
     )
 
+# -------------------------------------------------------------------
+# Запуск с планировщиком
+# -------------------------------------------------------------------
+
+scheduler = AsyncIOScheduler()
+scheduler.add_job(send_daily_messages, 'cron', hour='9,14,22', minute=0)
+
 async def main():
+    scheduler.start()
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
     asyncio.run(main())
-if __name__ == "__main__":
-    asyncio.run(main())
-
-
